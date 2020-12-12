@@ -1,0 +1,66 @@
+- hosts: all
+  vars_prompt:
+  - name: container_name
+    private: no
+    prompt: "Enter Your Container Name "
+
+  - name: port_name
+    private: no
+    prompt: "Enter Port Number "
+
+  tasks:
+  - name: "create docker yum repo"
+    yum_repository:
+      name: docker
+      description: desc. for docker
+      baseurl: https://download.docker.com/linux/centos/7/x86_64/stable/
+      gpgcheck: no
+
+  - name: "Installing Docker"
+    command: "yum install docker-ce --nobest -y"
+
+  - name: "Starting docker services"
+    service:
+       name: "docker"
+       state: started
+       enabled: yes
+
+  - name: "creating directory to attach container here"
+    file:
+      path: /root/docker/
+      state: directory
+
+  - name: " Creating web page"
+    copy:
+      dest: "/root/docker/index.html"
+      content: "This is my web page..\n!!!"
+
+  - name: "Installing Python3 in Target Node"
+    package:
+      name: "python3"
+      state: present
+
+  - name: "Installing Docker SDK for python3"
+    command: "pip3 install docker"
+
+  - name: "Pull Docker HTTPD Image"
+    docker_image:
+      name: "httpd"
+      source: pull
+
+  - name: "Launch Docker Container"
+    docker_container:
+      name:  "{{ container_name }}"
+      image: httpd
+      volumes: /root/docker:/usr/local/apache2/htdocs/
+      ports: "{{ port_name }}:80"
+      state: started
+      detach: yes
+
+  - name: "Stop Firewall to allow the traffic"
+    service:
+       name: firewalld
+       state: stopped
+
+  
+
